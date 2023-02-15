@@ -12,22 +12,25 @@ import IWfs as IW
 
 class WfsClient:
     def __init__(self,url) -> None:
-        self.serverUrl=url
-        transport = THttpClient(self.serverUrl)
-        protocol = TCompactProtocol.TCompactProtocol(transport)       
-        self.client = IW.Client(protocol)
-        transport.open() 
+        self._serverUrl=url
+        self._transport = THttpClient(self._serverUrl)
+        protocol = TCompactProtocol.TCompactProtocol(self._transport)       
+        self._client = IW.Client(protocol)
+        self._transport.open() 
 
     def PostFile(self,bs,name,fileType):
         wf = IW.WfsFile()
         wf.fileBody,wf.fileType,wf.name = bs,fileType,name
-        return self.client.wfsPost(wf)
+        return self._client.wfsPost(wf)
        
     def GetFile(self,name) :
-        return self.client.wfsRead(name)
+        return self._client.wfsRead(name)
 
     def DelFile(self,name):
-        return self.client.wfsDel(name)        
+        return self._client.wfsDel(name) 
+
+    def Close(self):
+        self._transport.close()
 
 def getFileBytes(filename):
     return open(filename, "rb").read()
@@ -43,4 +46,5 @@ if __name__ == "__main__":
     print(len(f.fileBody))
     saveFileByBytes(f.fileBody,"22_1.jpg")
     # wfs.DelFile("22")
+    wfs.Close()
 
