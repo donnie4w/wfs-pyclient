@@ -21,17 +21,17 @@ class WfsClient:
     def PostFile(self,bs,name,fileType):
         wf = IW.WfsFile()
         wf.fileBody,wf.fileType,wf.name = bs,fileType,name
-        self.client.wfsPost(wf)
+        return self.client.wfsPost(wf)
        
     def GetFile(self,name) :
         return self.client.wfsRead(name)
 
     def DelFile(self,name):
-        self.client.wfsDel(name)        
+        return self.client.wfsDel(name)        
 
 def getFileBytes(filename):
     return open(filename, "rb").read()
-    
+
 def saveFileByBytes(bs,filename):
     open(filename, "wb").write(bs)
 
