@@ -1,50 +1,107 @@
-#
-# https://github.com/donnie4w/wfs-pyclient
-#  wfs client of python3
-# wfs : https://github.com/donnie4w/wfs
-# donnie4w@gmail.com
-#
-#!/usr/bin/python3
-from thrift.transport.THttpClient import THttpClient
-from thrift.protocol import TCompactProtocol
-import IWfs as IW
+"""
+Copyright 2023 tldb Author. All Rights Reserved.
+email: donnie4w@gmail.com
+https://github.com/donnie4w/wfs-pyclient
+"""
+import _thread
+import random
+import ssl
+import threading
+import time
+
+from thrift.protocol import *
+from thrift.transport import *
+from thrift.transport.TSSLSocket import TSSLSocket
+from WfsIface import *
+
+logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 
 class WfsClient:
-    def __init__(self,url) -> None:
-        self._serverUrl=url
-        self._transport = THttpClient(self._serverUrl)
-        protocol = TCompactProtocol.TCompactProtocol(self._transport)       
-        self._client = IW.Client(protocol)
-        self._transport.open() 
+    transport = None
+    conn = None
+    host = ""
+    port = 0
+    tls = False
+    name = ""
+    pwd = ""
+    connid = 0
+    pingNum = 1
+    lock = threading.Lock()
 
-    def PostFile(self,bs,name,fileType):
-        wf = IW.WfsFile()
-        wf.fileBody,wf.fileType,wf.name = bs,fileType,name
-        return self._client.wfsPost(wf)
-       
-    def GetFile(self,name) :
-        return self._client.wfsRead(name)
+    def __init__(self):
+        self.timeout = 60 * 1000
 
-    def DelFile(self,name):
-        return self._client.wfsDel(name) 
+    def __connect(self) -> WfsAck:
+        try:
+            if self.tls:
+                socket = TSSLSocket(self.host, self.port, cert_reqs=ssl.CERT_NONE)
+            else:
+                socket = TSocket.TSocket(self.host, self.port)
+            socket.setTimeout(self.timeout)
+            self.transport = TTransport.TBufferedTransport(socket)
+            protocol = TCompactProtocol.TCompactProtocol(self.transport)
+            self.conn = Client(protocol)
+            logging.debug("conn>>" + str(self.pingNum))
+            self.transport.open()
+            self.pingNum = 0
+            return self.Auth()
+        except Exception as e:
+            logging.error("connect error:" + str(e))
 
-    def Close(self):
-        self._transport.close()
+    def close(self) -> None:
+        self.connid += 1
+        self.transport.close()
 
-def getFileBytes(filename):
-    return open(filename, "rb").read()
+    def setTimeout(self, timeout):
+        self.timeout = timeout
 
-def saveFileByBytes(bs,filename):
-    open(filename, "wb").write(bs)
+    def newConnect(self, tls, host, port, name, pwd) -> WfsAck:
+        self.tls, self.host, self.port, self.name, self.pwd = tls, host, port, name, pwd
+        self.connid += 1
+        ack = self.__connect()
+        _thread.start_new_thread(self.timer, (self.connid,))
+        return ack
 
-if __name__ == "__main__":
-    wfs = WfsClient("http://127.0.0.1:3434/thrift")
-    bs= getFileBytes("1.jpg")
-    wfs.PostFile(bs,"22","")
-    f = wfs.GetFile("22")
-    print(len(f.fileBody))
-    saveFileByBytes(f.fileBody,"22_1.jpg")
-    # wfs.DelFile("22")
-    wfs.Close()
+    def reconnect(self):
+        logging.warning("reconnect")
+        if self.conn is not None:
+            try:
+                self.transport.close()
+            except Exception as e:
+                pass
+        self.newConnect(self.tls, self.host, self.port, self.name, self.pwd)
 
+    def Auth(self) -> WfsAck:
+        wa = WfsAuth(name=self.name, pwd=self.pwd)
+        with self.lock:
+            return self.conn.Auth(wa)
+
+    def ping(self) -> int:
+        with self.lock:
+            return self.conn.Ping()
+
+    def timer(self, id):
+        while id == self.connid:
+            time.sleep(3)
+            try:
+                self.pingNum += 1
+                p = self.ping()
+                if p == 1:
+                    self.pingNum -= 1
+            except Exception as e:
+                print("ping error:" + str(e))
+            if self.pingNum > 5 and id == self.connid:
+                self.reconnect()
+
+    def Append(self, wf):
+        with self.lock:
+            return self.conn.Append(wf)
+
+    def Delete(self, path):
+        with self.lock:
+            return self.conn.Delete(path)
+
+    def Get(self, path):
+        with self.lock:
+            return self.conn.Get(path)
