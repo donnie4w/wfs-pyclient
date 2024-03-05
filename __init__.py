@@ -1,1 +1,1 @@
-__all__ = ['ttypes', 'constants', 'IWfs']
+__all__ = ['ttypes', 'wfsclient']
