@@ -11,7 +11,7 @@ import pytest
 
 def newClient() -> WfsClient:
     client = WfsClient()
-    wa = client.newConnect(False, "127.0.0.1", 6802, "admin", "123")
+    wa = client.newConnect(True, "127.0.0.1", 6802, "admin", "123")
     print(wa)
     return client
 
@@ -38,3 +38,9 @@ def test_Get():
         print("file length:", length)
     else:
         print("file not exist")
+
+
+def test_Rename():
+    client = newClient()
+    ack = client.Rename("2.jpeg","11.jpeg")
+    print(ack)
