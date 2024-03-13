@@ -105,3 +105,7 @@ class WfsClient:
     def Get(self, path):
         with self.lock:
             return self.conn.Get(path)
+
+    def Rename(self,path,newPath):
+        with self.lock:
+            return self.conn.Rename(path,newPath)
