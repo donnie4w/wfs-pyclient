@@ -35,6 +35,15 @@ class Iface(object):
         """
         pass
 
+    def Rename(self, path, newpath):
+        """
+        Parameters:
+         - path
+         - newpath
+
+        """
+        pass
+
     def Auth(self, wa):
         """
         Parameters:
@@ -125,6 +134,40 @@ class Client(Iface):
         if result.success is not None:
             return result.success
         raise TApplicationException(TApplicationException.MISSING_RESULT, "Delete failed: unknown result")
+
+    def Rename(self, path, newpath):
+        """
+        Parameters:
+         - path
+         - newpath
+
+        """
+        self.send_Rename(path, newpath)
+        return self.recv_Rename()
+
+    def send_Rename(self, path, newpath):
+        self._oprot.writeMessageBegin('Rename', TMessageType.CALL, self._seqid)
+        args = Rename_args()
+        args.path = path
+        args.newpath = newpath
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_Rename(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = Rename_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "Rename failed: unknown result")
 
     def Auth(self, wa):
         """
@@ -223,6 +266,7 @@ class Processor(Iface, TProcessor):
         self._processMap = {}
         self._processMap["Append"] = Processor.process_Append
         self._processMap["Delete"] = Processor.process_Delete
+        self._processMap["Rename"] = Processor.process_Rename
         self._processMap["Auth"] = Processor.process_Auth
         self._processMap["Get"] = Processor.process_Get
         self._processMap["Ping"] = Processor.process_Ping
@@ -290,6 +334,29 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
         oprot.writeMessageBegin("Delete", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_Rename(self, seqid, iprot, oprot):
+        args = Rename_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = Rename_result()
+        try:
+            result.success = self._handler.Rename(args.path, args.newpath)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("Rename", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -611,6 +678,142 @@ class Delete_result(object):
         return not (self == other)
 all_structs.append(Delete_result)
 Delete_result.thrift_spec = (
+    (0, TType.STRUCT, 'success', [WfsAck, None], None, ),  # 0
+)
+
+
+class Rename_args(object):
+    """
+    Attributes:
+     - path
+     - newpath
+
+    """
+
+
+    def __init__(self, path=None, newpath=None,):
+        self.path = path
+        self.newpath = newpath
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.path = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.STRING:
+                    self.newpath = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('Rename_args')
+        if self.path is not None:
+            oprot.writeFieldBegin('path', TType.STRING, 1)
+            oprot.writeString(self.path.encode('utf-8') if sys.version_info[0] == 2 else self.path)
+            oprot.writeFieldEnd()
+        if self.newpath is not None:
+            oprot.writeFieldBegin('newpath', TType.STRING, 2)
+            oprot.writeString(self.newpath.encode('utf-8') if sys.version_info[0] == 2 else self.newpath)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(Rename_args)
+Rename_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'path', 'UTF8', None, ),  # 1
+    (2, TType.STRING, 'newpath', 'UTF8', None, ),  # 2
+)
+
+
+class Rename_result(object):
+    """
+    Attributes:
+     - success
+
+    """
+
+
+    def __init__(self, success=None,):
+        self.success = success
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRUCT:
+                    self.success = WfsAck()
+                    self.success.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('Rename_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            self.success.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(Rename_result)
+Rename_result.thrift_spec = (
     (0, TType.STRUCT, 'success', [WfsAck, None], None, ),  # 0
 )
 
