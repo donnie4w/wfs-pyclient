@@ -6,10 +6,10 @@
 创建wfsclient实例对象
 
 	def newClient() -> WfsClient:
-    	client = WfsClient()
-    	wa = client.newConnect(False, "127.0.0.1", 6802, "admin", "123")
-    	print(wa)
-    	return client
+        client = WfsClient()
+        wa = client.newConnect(False, "127.0.0.1", 6802, "admin", "123")
+        print(wa)
+        return client
 
 参数说明：client.newConnect(False, "127.0.0.1", 6802, "admin", "123")
 1. 第一个参数：是否TLS
@@ -23,28 +23,34 @@
 上传文件
 
 	def test_Append():
-    	client = newClient()
-    	wf = WfsFile()
-    	wf.name = "test/py/1.jpeg"
-    	wf.data = open('1.jpeg', 'rb').read()
-    	client.Append(wf)
+        client = newClient()
+        wf = WfsFile()
+        wf.name = "test/py/1.jpeg"
+        wf.data = open('1.jpeg', 'rb').read()
+        client.Append(wf)
 
 删除文件
 
 	def test_Delete():
-    	client = newClient()
-    	ack = client.Delete("test/py/1.jpeg")
-    	print("delete ack:", ack)
+        client = newClient()
+        ack = client.Delete("test/py/1.jpeg")
+        print("delete ack:", ack)
 
 拉取文件
 
 	def test_Get():
-    	client = newClient()
-    	wd = client.Get("test/py/1.jpeg")
-    	if wd.data is not None:
-        	length = len(wd.data)
-        	print("file length:", length)
-    	else:
-        	print("file not exist")
+        client = newClient()
+        wd = client.Get("test/py/1.jpeg")
+        if wd.data is not None:
+            length = len(wd.data)
+            print("file length:", length)
+        else:
+            print("file not exist")
 		
+重命名
 
+    def test_Rename():
+        client = newClient()
+        ack = client.Rename("2.jpeg","11.jpeg")
+        print(ack)
+		
